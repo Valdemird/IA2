@@ -21,7 +21,7 @@ GameObject:
   - component: {fileID: 4000013381597554}
   - component: {fileID: 33000010623287020}
   - component: {fileID: 23000011664627356}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Apple_LOD1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -38,7 +38,7 @@ GameObject:
   - component: {fileID: 4000013711606732}
   - component: {fileID: 33000012736550426}
   - component: {fileID: 23000012018818966}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Apple_LOD0
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -55,7 +55,7 @@ GameObject:
   - component: {fileID: 4000011667685464}
   - component: {fileID: 205000011201749446}
   - component: {fileID: 65000012155365366}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Apple
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -116,6 +116,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RenderingLayerMask: 4294967295
   m_Materials:
   - {fileID: 2100000, guid: 6da3576e2abca2a48af27548dfa79557, type: 2}
   m_StaticBatchInfo:
@@ -150,6 +151,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
+  m_RenderingLayerMask: 4294967295
   m_Materials:
   - {fileID: 2100000, guid: 6da3576e2abca2a48af27548dfa79557, type: 2}
   m_StaticBatchInfo:
@@ -193,7 +195,7 @@ BoxCollider:
   m_GameObject: {fileID: 1000013678658166}
   m_Material: {fileID: 0}
   m_IsTrigger: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 2
   m_Size: {x: 0.09203893, y: 0.10557197, z: 0.093840025}
   m_Center: {x: 0.00030497648, y: 0.05283799, z: 0.000054053962}

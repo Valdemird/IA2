@@ -1,8 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
-public class ManagerScript : MonoBehaviour {
+public class ManagerScript : MonoBehaviour
+{
     public const int VACIO = 0;
     public const int MANZANA = 1;
     public const int CABALLOIA = 2;
@@ -16,7 +18,14 @@ public class ManagerScript : MonoBehaviour {
     public const int MOVIMIENTO_IZQUIERDA_ABAJO = 10;
     public const int MOVIMIENTO_IZQUIERDA_ARRIBA = 11;
 
+    //
+    private int turnoActual;
+    IAscript iaScript;
 
+    public bool turnoJugador()
+    {
+        return turnoActual % 2 == 0;
+    }
 
     [SerializeField]
     GameObject casilaOcupada;
@@ -34,44 +43,157 @@ public class ManagerScript : MonoBehaviour {
     int cantidadItems;
     int[,] representacion;
     int color = 1;
+    List<GameObject> jugadasPosibles;
 
     //Instancias
     GameObject caballoEnjuego;
-    GameObject caballoEnJUegoIA;
+    GameObject caballoEnJuegoIA;
     ArrayList manzanas;
 
+
+    //estado del juego
+
+    int manzanasIA;
+    int manzanasJugador;
+
+
     // Use this for initialization
-    void Start () {
-        representacion = new int[6,6];
+    void Start()
+    {
+        iaScript = gameObject.GetComponent<IAscript>();
+        representacion = new int[6, 6];
         manzanas = new ArrayList();
         crearTablero();
         inicializacion();
-        calcularMovimientosPosibles(caballoEnjuego);
+        primerMovimiento();
+
+
+
+    }
+
+    public void primerMovimiento()
+    {
+        DatoPos datos = caballoEnJuegoIA.GetComponent<DatoPos>();
+        hacerJugada(datos.PosX, datos.PosY, false);
+    }
+
+
+
+    public void hacerJugada(int posX, int posY, bool jugador)
+    {
+
+        foreach (GameObject jugada in jugadasPosibles) {
+            jugada.GetComponent<DatosJugada>().eliminar();
+        }
+
+        if (turnoActual % 2 == 0)
+        {
+            DatoPos datoPos = caballoEnjuego.GetComponent<DatoPos>();
+            StartCoroutine(moverCaballo(posX, posY, jugador));
+
+        }
+        else
+        {
+            Vector2 movimiento = iaScript.AlgoritmoMinimax((int[,])representacion.Clone(), manzanasIA, manzanasJugador, posX, posY, 4);
+            DatoPos datoPos = caballoEnJuegoIA.GetComponent<DatoPos>();
+            StartCoroutine(moverCaballo((int)movimiento.x, (int)movimiento.y, jugador));
+
+        }
+
+        if (representacion[posX, posY] == MANZANA)
+        {
+            if (jugador)
+            {
+                manzanasJugador++;
+            }
+            else
+            {
+                manzanasIA++;
+            }
+
+        }
+
+        turnoActual++;
+
+
+    }
+
+    private IEnumerator moverCaballo(int posX, int posY, bool jugador)
+    {
+        GameObject caballo;
+        if (jugador)
+        {
+            caballo = caballoEnjuego;
+        }
+        else
+        {
+            caballo = caballoEnJuegoIA;
+        }
+        Animator anim = caballo.GetComponentInChildren<Animator>();
+        anim.SetBool("stop", false);
+        NavMeshAgent agent = caballo.GetComponent<NavMeshAgent>();
+        Vector3 firstMove = new Vector3(posX, 0, caballo.transform.position.z);
+        Vector3 secondMove = new Vector3(posX, 0, posY);
+        agent.SetDestination(firstMove);
+        yield return new WaitForSeconds(1f);
+        agent.SetDestination(secondMove);
+        yield return new WaitUntil(() => Vector3.Distance(caballo.transform.position, secondMove) <= 0.2);
+        anim.SetBool("stop", true);
+        DatoPos datoSiguiente;
+        DatoPos datoActual;
+
+
+
+
+        if (jugador)
+        {
+            datoSiguiente = caballoEnJuegoIA.GetComponent<DatoPos>();
+            datoActual = caballoEnjuego.GetComponent<DatoPos>();
+            representacion[posX, posY] = CABALLOJUGADOR;
+        }
+        else
+        {
+            datoSiguiente = caballoEnjuego.GetComponent<DatoPos>();
+            datoActual = caballoEnJuegoIA.GetComponent<DatoPos>();
+            representacion[posX, posY] = CABALLOIA;
+        }
+
+        representacion[datoActual.PosX, datoActual.PosY] = VACIO;
+        datoActual.PosX = posX;
+        datoActual.PosY = posY;
+        calcularMovimientosPosibles(datoSiguiente.PosX, datoSiguiente.PosY);
+        Debug.Log("despues de calcularMovimiento");
+        printMatrix();
+
 
     }
 
 
-    void calcularMovimientosPosibles(GameObject caballo) {
-        int posX = (int)caballo.transform.position.x;
-        int posY =(int) caballo.transform.position.z;
+    void calcularMovimientosPosibles(int posX, int posY)
+    {
 
-        for (int i = MOVIMIENTO_ABAJO_DERECHA; i <= MOVIMIENTO_IZQUIERDA_ARRIBA; i++) {
+        for (int i = MOVIMIENTO_ABAJO_DERECHA; i <= MOVIMIENTO_IZQUIERDA_ARRIBA; i++)
+        {
 
             Vector2 posicion = obtenerNuevaPosicion(i, posX, posY);
-            Debug.Log("Posicion X:  " + posicion.x);
-            Debug.Log("Posicion Y:  " + posicion.y);
-            Debug.Log(validarMovimiento((int)posicion.x, (int)posicion.y));
-            if (validarMovimiento((int)posicion.x, (int)posicion.y)) {
-                
-                Vector3 pos = new Vector3(posicion.x,0,posicion.y);
-                Instantiate(casilaOcupada, pos, transform.rotation);
+            if (validarMovimiento((int)posicion.x, (int)posicion.y))
+            {
+
+                Vector3 pos = new Vector3(posicion.x, 0, posicion.y);
+                GameObject jugada = Instantiate(casilaOcupada, pos, transform.rotation) as GameObject;
+                jugada.GetComponent<DatosJugada>().PosX = (int)posicion.x;
+                jugada.GetComponent<DatosJugada>().PosY = (int)posicion.y;
+                jugada.GetComponent<DatosJugada>().Turno = turnoActual;
+                jugadasPosibles.Add(jugada);
             }
         }
     }
 
-    Vector2 obtenerNuevaPosicion(int movimiento,int posX,int posY) {
+    public Vector2 obtenerNuevaPosicion(int movimiento, int posX, int posY)
+    {
 
-        switch (movimiento) {
+        switch (movimiento)
+        {
             case MOVIMIENTO_ABAJO_DERECHA:
                 posY -= 2;
                 posX += 1;
@@ -108,21 +230,28 @@ public class ManagerScript : MonoBehaviour {
         return new Vector2(posX, posY);
     }
 
-    bool validarMovimiento(int posX, int posY) {
+    public bool validarMovimiento(int posX, int posY)
+    {
         if (posX < 0 || posX > 5 || posY < 0 || posY > 5)
         {
             return false;
         }
-        else if (representacion[posX,posY] == CABALLOIA)
+        else if (representacion[posX, posY] == CABALLOIA || representacion[posX, posY] == CABALLOJUGADOR)
         {
-            return false;    
+            return false;
         }
         return true;
     }
 
-    void inicializacion() {
+    void inicializacion()
+    {
+        turnoActual = 1;
+        manzanasIA = 0;
+        manzanasJugador = 0;
+        jugadasPosibles = new List<GameObject>();
         createObject(CABALLOIA);
         createObject(CABALLOJUGADOR);
+
 
         for (int i = 0; i < cantidadItems; i++)
         {
@@ -133,9 +262,12 @@ public class ManagerScript : MonoBehaviour {
     {
         for (int i = 0; i < 6; i++)
         {
-            if (i % 2 == 0){
-                color = 1; }
-            else {
+            if (i % 2 == 0)
+            {
+                color = 1;
+            }
+            else
+            {
                 color = 0;
             }
 
@@ -143,22 +275,24 @@ public class ManagerScript : MonoBehaviour {
             {
                 if (color == 1)
                 {
-                    Instantiate(CasillaBlanca, new Vector3(i,0,j), transform.rotation);
+                    Instantiate(CasillaBlanca, new Vector3(i, 0, j), transform.rotation);
                     color = 0;
                 }
                 else
                 {
-                    Instantiate(CasillaNegra, new Vector3(i,0,j), transform.rotation);
+                    Instantiate(CasillaNegra, new Vector3(i, 0, j), transform.rotation);
                     color = 1;
                 }
             }
         }
     }
-    void createObject(int tipo) {
+    void createObject(int tipo)
+    {
         bool escrito = false;
         int posX;
         int posY;
-        while (!escrito) {
+        while (!escrito)
+        {
             posX = Random.Range(0, 6);
             posY = Random.Range(0, 6);
             if (representacion[posX, posY] == VACIO)
@@ -173,25 +307,48 @@ public class ManagerScript : MonoBehaviour {
                         manzanas.Add(man);
                         break;
                     case CABALLOIA:
-                        caballoEnJUegoIA = Instantiate(CaballoIA, pos, transform.rotation) as GameObject;
+                        caballoEnJuegoIA = Instantiate(CaballoIA, pos, transform.rotation) as GameObject;
+                        DatoPos datoPosIA = caballoEnJuegoIA.GetComponent<DatoPos>();
+                        datoPosIA.PosX = posX;
+                        datoPosIA.PosY = posY;
                         break;
                     case CABALLOJUGADOR:
-                        caballoEnjuego = Instantiate(CaballoJugador, pos, transform.rotation) as GameObject;
+
+                        caballoEnjuego = Instantiate(CaballoJugador, pos + Vector3.up * 2, transform.rotation) as GameObject;
+                        DatoPos datoPos = caballoEnjuego.GetComponent<DatoPos>();
+                        datoPos.PosX = posX;
+                        datoPos.PosY = posY;
                         break;
                 }
 
                 representacion[posX, posY] = tipo;
-            }
-            
-        }
-          
-            
-        
-    }
-	
 
-	// Update is called once per frame
-	void Update () {
-		
-	}
+            }
+
+        }
+
+
+
+    }
+
+    public void printMatrix()
+    {
+        string value = "";
+        for (int i = 5; i >= 0; i--)
+        {
+            for (int j = 0; j < 6; j++)
+            {
+                value += representacion[j, i] + " ";
+            }
+            value += "\n";
+        }
+        Debug.Log(value);
+    }
+
+
+    // Update is called once per frame
+    void Update()
+    {
+
+    }
 }
