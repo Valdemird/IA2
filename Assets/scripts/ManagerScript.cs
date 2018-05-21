@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
-
+using UnityEngine.UI;
 public class ManagerScript : MonoBehaviour
 {
     public const int VACIO = 0;
@@ -20,11 +20,14 @@ public class ManagerScript : MonoBehaviour
 
     //
     private int turnoActual;
+    public Text turno;
+    public Text puntajeMaquina;
+    public Text puntajeJugador;
     IAscript iaScript;
 
     public bool turnoJugador()
     {
-        return turnoActual % 2 == 0;
+        return TurnoActual % 2 == 0;
     }
 
     [SerializeField]
@@ -48,7 +51,7 @@ public class ManagerScript : MonoBehaviour
     //Instancias
     GameObject caballoEnjuego;
     GameObject caballoEnJuegoIA;
-    ArrayList manzanas;
+    List<GameObject> manzanas;
 
 
     //estado del juego
@@ -56,22 +59,73 @@ public class ManagerScript : MonoBehaviour
     int manzanasIA;
     int manzanasJugador;
 
+    public int TurnoActual
+    {
+        get
+        {
+            return turnoActual;
+        }
+
+        set
+        {
+            turnoActual = value;
+            if (turnoJugador())
+            {
+                turno.text = "turno del jugador";
+            }
+            else
+            {
+                turno.text = "turno de la maquina";
+            }
+        }
+    }
+
+
+    public void siguienteTurno() {
+        turnoActual++;
+        DatoPos datoCaballo;
+        if (turnoJugador())
+        {
+            datoCaballo = caballoEnjuego.GetComponent<DatoPos>();
+            calcularMovimientosPosibles(datoCaballo.PosX, datoCaballo.PosY);
+        }
+        else
+        {
+            datoCaballo  = caballoEnJuegoIA.GetComponent<DatoPos>();
+            movimientoIA();
+        }
+    }
+
+    public void eliminarManzana(int posX,int  posY) {
+        GameObject datoAEliminiar = null;
+        foreach (GameObject manzana in manzanas) {
+            
+            ManzanaDatoPos datoTmp = manzana.GetComponent<ManzanaDatoPos>();
+            if (posX == datoTmp.PosX && posY == datoTmp.PosY) {
+                datoTmp.Eliminar();
+                datoAEliminiar = manzana;
+            }
+        }
+        manzanas.Remove(datoAEliminiar);
+
+    }
+
 
     // Use this for initialization
     void Start()
     {
         iaScript = gameObject.GetComponent<IAscript>();
         representacion = new int[6, 6];
-        manzanas = new ArrayList();
+        manzanas = new List<GameObject>();
         crearTablero();
         inicializacion();
-        primerMovimiento();
+        movimientoIA();
 
 
 
     }
 
-    public void primerMovimiento()
+    public void movimientoIA()
     {
         DatoPos datos = caballoEnJuegoIA.GetComponent<DatoPos>();
         hacerJugada(datos.PosX, datos.PosY, false);
@@ -79,14 +133,20 @@ public class ManagerScript : MonoBehaviour
 
 
 
+    public void limpiarPosiblesJugadas() {
+        foreach (GameObject jugada in jugadasPosibles)
+        {
+            jugada.GetComponent<DatosJugada>().eliminar();
+        }
+        jugadasPosibles = new List<GameObject>();
+    }
+
     public void hacerJugada(int posX, int posY, bool jugador)
     {
 
-        foreach (GameObject jugada in jugadasPosibles) {
-            jugada.GetComponent<DatosJugada>().eliminar();
-        }
+        limpiarPosiblesJugadas();
 
-        if (turnoActual % 2 == 0)
+        if (TurnoActual % 2 == 0)
         {
             DatoPos datoPos = caballoEnjuego.GetComponent<DatoPos>();
             StartCoroutine(moverCaballo(posX, posY, jugador));
@@ -94,28 +154,16 @@ public class ManagerScript : MonoBehaviour
         }
         else
         {
-            Vector2 movimiento = iaScript.AlgoritmoMinimax((int[,])representacion.Clone(), manzanasIA, manzanasJugador, posX, posY, 4);
-            DatoPos datoPos = caballoEnJuegoIA.GetComponent<DatoPos>();
-            StartCoroutine(moverCaballo((int)movimiento.x, (int)movimiento.y, jugador));
-
+            StartCoroutine(calcularMovimiento(posX, posY, jugador));
         }
-
-        if (representacion[posX, posY] == MANZANA)
-        {
-            if (jugador)
-            {
-                manzanasJugador++;
-            }
-            else
-            {
-                manzanasIA++;
-            }
-
-        }
-
-        turnoActual++;
+    }
 
 
+    private IEnumerator calcularMovimiento(int posX,int posY,bool jugador) {
+        Vector2 movimiento = iaScript.AlgoritmoMinimax((int[,])representacion.Clone(), manzanasIA, manzanasJugador, posX, posY, 5);
+        DatoPos datoPos = caballoEnJuegoIA.GetComponent<DatoPos>();
+        StartCoroutine(moverCaballo((int)movimiento.x, (int)movimiento.y, jugador));
+        yield return null;
     }
 
     private IEnumerator moverCaballo(int posX, int posY, bool jugador)
@@ -139,21 +187,34 @@ public class ManagerScript : MonoBehaviour
         agent.SetDestination(secondMove);
         yield return new WaitUntil(() => Vector3.Distance(caballo.transform.position, secondMove) <= 0.2);
         anim.SetBool("stop", true);
-        DatoPos datoSiguiente;
         DatoPos datoActual;
 
 
+        if (representacion[posX, posY] == MANZANA)
+        {
+            eliminarManzana(posX, posY);
+            if (jugador)
+            {
+                manzanasJugador++;
+            }
+            else
+            {
+                manzanasIA++;
+            }
+
+            puntajeMaquina.text = "" + manzanasIA;
+            puntajeJugador.text = "" + manzanasJugador;
+            Debug.Log("manzana jugador = " + manzanasJugador + " manzana ia = " + manzanasIA);
+        }
 
 
         if (jugador)
         {
-            datoSiguiente = caballoEnJuegoIA.GetComponent<DatoPos>();
             datoActual = caballoEnjuego.GetComponent<DatoPos>();
             representacion[posX, posY] = CABALLOJUGADOR;
         }
         else
         {
-            datoSiguiente = caballoEnjuego.GetComponent<DatoPos>();
             datoActual = caballoEnJuegoIA.GetComponent<DatoPos>();
             representacion[posX, posY] = CABALLOIA;
         }
@@ -161,9 +222,10 @@ public class ManagerScript : MonoBehaviour
         representacion[datoActual.PosX, datoActual.PosY] = VACIO;
         datoActual.PosX = posX;
         datoActual.PosY = posY;
-        calcularMovimientosPosibles(datoSiguiente.PosX, datoSiguiente.PosY);
         Debug.Log("despues de calcularMovimiento");
         printMatrix();
+
+        siguienteTurno();
 
 
     }
@@ -183,7 +245,7 @@ public class ManagerScript : MonoBehaviour
                 GameObject jugada = Instantiate(casilaOcupada, pos, transform.rotation) as GameObject;
                 jugada.GetComponent<DatosJugada>().PosX = (int)posicion.x;
                 jugada.GetComponent<DatosJugada>().PosY = (int)posicion.y;
-                jugada.GetComponent<DatosJugada>().Turno = turnoActual;
+                jugada.GetComponent<DatosJugada>().Turno = TurnoActual;
                 jugadasPosibles.Add(jugada);
             }
         }
@@ -245,7 +307,7 @@ public class ManagerScript : MonoBehaviour
 
     void inicializacion()
     {
-        turnoActual = 1;
+        TurnoActual = 1;
         manzanasIA = 0;
         manzanasJugador = 0;
         jugadasPosibles = new List<GameObject>();
@@ -304,6 +366,9 @@ public class ManagerScript : MonoBehaviour
                 {
                     case MANZANA:
                         GameObject man = Instantiate(manazana, pos, transform.rotation) as GameObject;
+                        ManzanaDatoPos datoPosManzana = man.GetComponent<ManzanaDatoPos>();
+                        datoPosManzana.PosX = posX;
+                        datoPosManzana.PosY = posY;
                         manzanas.Add(man);
                         break;
                     case CABALLOIA:

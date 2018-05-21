@@ -35,8 +35,14 @@ public class IAscript : MonoBehaviour {
             nodoActual = nodoActual.parent;
             
         }
-        Debug.Log("movimiento papa " + nodoActual.depth + " (" + nodoActual.estado.posX + "," + nodoActual.estado.posY + ")");
+        Debug.Log("ultimo nodo " + nodoActual.depth + " (" + nodoActual.estado.posX + "," + nodoActual.estado.posY + ")");
         Nodo hijoMax = minimax(nodoActual);
+        Debug.Log("movimiento " + hijoMax.depth + " (" + hijoMax.estado.posX + "," + hijoMax.estado.posY + ")");
+
+        while (hijoMax.depth != 1) {
+            hijoMax = hijoMax.parent;
+        }
+        Debug.Log("primer " + nodoActual.depth + " (" + nodoActual.estado.posX + "," + nodoActual.estado.posY + ")");
         Debug.Log("movimiento " + hijoMax.depth + " (" + hijoMax.estado.posX + "," + hijoMax.estado.posY + ")");
         Vector2 vector2 = new Vector2(hijoMax.estado.posX, hijoMax.estado.posY);
         return vector2;
