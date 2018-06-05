@@ -23,6 +23,7 @@ public class ManagerScript : MonoBehaviour
     public Text turno;
     public Text puntajeMaquina;
     public Text puntajeJugador;
+    public int profundidadIA;
     IAscript iaScript;
 
     public bool turnoJugador()
@@ -42,8 +43,8 @@ public class ManagerScript : MonoBehaviour
     GameObject CasillaNegra;
     [SerializeField]
     GameObject CasillaBlanca;
-    [SerializeField]
-    int cantidadItems;
+    
+    public int cantidadItems;
     int[,] representacion;
     int color = 1;
     List<GameObject> jugadasPosibles;
@@ -148,7 +149,6 @@ public class ManagerScript : MonoBehaviour
 
         if (TurnoActual % 2 == 0)
         {
-            DatoPos datoPos = caballoEnjuego.GetComponent<DatoPos>();
             StartCoroutine(moverCaballo(posX, posY, jugador));
 
         }
@@ -160,8 +160,8 @@ public class ManagerScript : MonoBehaviour
 
 
     private IEnumerator calcularMovimiento(int posX,int posY,bool jugador) {
-        Vector2 movimiento = iaScript.AlgoritmoMinimax((int[,])representacion.Clone(), manzanasIA, manzanasJugador, posX, posY, 5);
-        DatoPos datoPos = caballoEnJuegoIA.GetComponent<DatoPos>();
+        DatoPos datoJugador = caballoEnjuego.GetComponent<DatoPos>();
+        Vector2 movimiento = iaScript.AlgoritmoMinimax((int[,])representacion.Clone(), manzanasIA, manzanasJugador, posX, posY, (int)datoJugador.PosX,(int)datoJugador.PosY, profundidadIA);
         StartCoroutine(moverCaballo((int)movimiento.x, (int)movimiento.y, jugador));
         yield return null;
     }
@@ -204,7 +204,6 @@ public class ManagerScript : MonoBehaviour
 
             puntajeMaquina.text = "" + manzanasIA;
             puntajeJugador.text = "" + manzanasJugador;
-            Debug.Log("manzana jugador = " + manzanasJugador + " manzana ia = " + manzanasIA);
         }
 
 
@@ -222,8 +221,7 @@ public class ManagerScript : MonoBehaviour
         representacion[datoActual.PosX, datoActual.PosY] = VACIO;
         datoActual.PosX = posX;
         datoActual.PosY = posY;
-        Debug.Log("despues de calcularMovimiento");
-        printMatrix();
+        //printMatrix();
 
         siguienteTurno();
 
