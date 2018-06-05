@@ -45,7 +45,7 @@ public class IAscript : MonoBehaviour {
         Nodo root = minimax(nodoActual);
         Nodo result = null;
         foreach (Nodo hijo in root.hijos) {
-            Debug.Log("movimiento posible " + hijo.utilidad + "  (puntajeJugador,puntajeIA) (" + hijo.estado.posX + "," + hijo.estado.posY + ")" + "movimiento ultimaJugada " + hijo.ultimajugada.utilidad + "  (puntajeJugador,puntajeIA) (" + hijo.ultimajugada.estado.puntajeJugador + "," + hijo.ultimajugada.estado.puntajeIA + ")");
+
             if (result == null)
             {
                 result = hijo;

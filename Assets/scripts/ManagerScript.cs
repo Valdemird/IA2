@@ -23,6 +23,7 @@ public class ManagerScript : MonoBehaviour
     public Text turno;
     public Text puntajeMaquina;
     public Text puntajeJugador;
+    public Text mensajeVictoria;
     public int profundidadIA;
     IAscript iaScript;
 
@@ -83,8 +84,28 @@ public class ManagerScript : MonoBehaviour
 
 
     public void siguienteTurno() {
-        turnoActual++;
+        TurnoActual++;
         DatoPos datoCaballo;
+        if (cantidadItems == (manzanasIA + manzanasJugador)) {
+            mensajeVictoria.enabled = true;
+            if (manzanasIA > manzanasJugador)
+            {
+                mensajeVictoria.text = "Gano el IA";
+            }
+            else {
+
+                if (manzanasIA < manzanasJugador)
+                {
+                    mensajeVictoria.text = "Gano el Jugador";
+                }
+                else {
+                    mensajeVictoria.text = "Empate";
+                }
+
+            }
+
+        }
+
         if (turnoJugador())
         {
             datoCaballo = caballoEnjuego.GetComponent<DatoPos>();
@@ -115,6 +136,7 @@ public class ManagerScript : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        mensajeVictoria.enabled = false;
         iaScript = gameObject.GetComponent<IAscript>();
         representacion = new int[6, 6];
         manzanas = new List<GameObject>();
@@ -160,6 +182,7 @@ public class ManagerScript : MonoBehaviour
 
 
     private IEnumerator calcularMovimiento(int posX,int posY,bool jugador) {
+  
         DatoPos datoJugador = caballoEnjuego.GetComponent<DatoPos>();
         Vector2 movimiento = iaScript.AlgoritmoMinimax((int[,])representacion.Clone(), manzanasIA, manzanasJugador, posX, posY, (int)datoJugador.PosX,(int)datoJugador.PosY, profundidadIA);
         StartCoroutine(moverCaballo((int)movimiento.x, (int)movimiento.y, jugador));
@@ -222,7 +245,7 @@ public class ManagerScript : MonoBehaviour
         datoActual.PosX = posX;
         datoActual.PosY = posY;
         //printMatrix();
-
+        yield return new WaitForSeconds(0.3f);
         siguienteTurno();
 
 
